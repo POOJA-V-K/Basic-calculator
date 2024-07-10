@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Calculator</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f9;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+        }
+        .container {
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+            max-width: 400px;
+            width: 100%;
+        }
+        .calculator {
+            margin-bottom: 20px;
+        }
+        .calculator-screen {
+            width: 100%;
+            height: 50px;
+            margin-bottom: 20px;
+            border: none;
+            background-color: #252525;
+            color: #fff;
+            text-align: right;
+            padding-right: 10px;
+            padding-left: 10px;
+            font-size: 2em;
+            border-radius: 5px;
+        }
+        .calculator-keys {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        button {
+            height: 50px;
+            font-size: 1.5em;
+            border-radius: 5px;
+            border: none;
+            background-color: #f0f0f0;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #ddd;
+        }
+        .operator {
+            background-color: #ff9500;
+            color: #fff;
+        }
+        .operator:hover {
+            background-color: #e08b00;
+        }
+        .all-clear, .backspace {
+            background-color: #ff3b30;
+            color: #fff;
+        }
+        .all-clear:hover, .backspace:hover {
+            background-color: #e02f28;
+        }
+        .equal-sign {
+            background-color: #34c759;
+            color: #fff;
+            grid-column: span 2;
+        }
+        .equal-sign:hover {
+            background-color: #30b456;
+        }
+        .history {
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #fff;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            display: none; /* Hidden by default */
+        }
+        .history-item {
+            font-size: 1.2em;
+            border-bottom: 1px solid #ccc;
+            padding: 5px 0;
+        }
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        .toggle-history {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 1em;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .toggle-history:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="calculator">
+            <input type="text" class="calculator-screen" id="screen" readonly />
+            <div class="calculator-keys">
+                <button type="button" class="operator" value="+">+</button>
+                <button type="button" class="operator" value="-">-</button>
+                <button type="button" class="operator" value="*">&times;</button>
+                <button type="button" class="operator" value="/">&divide;</button>
+
+                <button type="button" value="7">7</button>
+                <button type="button" value="8">8</button>
+                <button type="button" value="9">9</button>
+                <button type="button" class="backspace" value="backspace">←</button>
+                
+                <button type="button" value="4">4</button>
+                <button type="button" value="5">5</button>
+                <button type="button" value="6">6</button>
+                <button type="button" class="all-clear" value="all-clear">AC</button>
+                
+                <button type="button" value="1">1</button>
+                <button type="button" value="2">2</button>
+                <button type="button" value="3">3</button>
+                <button type="button" class="equal-sign" value="=">=</button>
+
+                <button type="button" value="0">0</button>
+                <button type="button" value=".">.</button>
+            </div>
+        </div>
+
+        <button class="toggle-history">Show History</button>
+        <div class="history">
+            <h2>History</h2>
+            <div id="history"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const calculator = {
+                displayValue: '0',
+                firstOperand: null,
+                waitingForSecondOperand: false,
+                operator: null,
+                history: JSON.parse(localStorage.getItem('history')) || []
+            };
+
+            function updateDisplay() {
+                const display = document.querySelector('.calculator-screen');
+                display.value = calculator.displayValue;
+            }
+
+            function updateHistory() {
+                const historyContainer = document.getElementById('history');
+                historyContainer.innerHTML = '';
+                calculator.history.forEach(entry => {
+                    const div = document.createElement('div');
+                    div.className = 'history-item';
+                    div.textContent = entry;
+                    historyContainer.appendChild(div);
+                });
+                localStorage.setItem('history', JSON.stringify(calculator.history));
+            }
+
+            function handleKeyPress(event) {
+                const { target } = event;
+
+                if (!target.matches('button')) {
+                    return;
+                }
+
+                if (target.classList.contains('operator')) {
+                    handleOperator(target.value);
+                    updateDisplay();
+                    return;
+                }
+
+                if (target.classList.contains('all-clear')) {
+                    resetCalculator();
+                    updateDisplay();
+                    updateHistory();
+                    return;
+                }
+
+                if (target.classList.contains('backspace')) {
+                    handleBackspace();
+                    updateDisplay();
+                    return;
+                }
+
+                if (target.classList.contains('equal-sign')) {
+                    handleOperator(target.value);
+                    updateDisplay();
+                    updateHistory();
+                    return;
+                }
+
+                inputDigit(target.value);
+                updateDisplay();
+            }
+
+            function inputDigit(digit) {
+                const { displayValue, waitingForSecondOperand } = calculator;
+
+                if (waitingForSecondOperand === true) {
+                    calculator.displayValue = digit;
+                    calculator.waitingForSecondOperand = false;
+                } else {
+                    calculator.displayValue = displayValue === '0' ? digit : displayValue + digit;
+                }
+            }
+
+            function handleOperator(nextOperator) {
+                const { firstOperand, displayValue, operator } = calculator;
+                const inputValue = parseFloat(displayValue);
+
+                if (operator && calculator.waitingForSecondOperand)  {
+                    calculator.operator = nextOperator;
+                    return;
+                }
+
+                if (firstOperand == null && !isNaN(inputValue)) {
+                    calculator.firstOperand = inputValue;
+                } else if (operator) {
+                    const result = performCalculation[operator](firstOperand, inputValue);
+
+                    const calculation = `${firstOperand} ${operator} ${inputValue} = ${result}`;
+                    calculator.history.push(calculation);
+
+                    calculator.displayValue = String(result);
+                    calculator.firstOperand = result;
+                }
+
+                calculator.waitingForSecondOperand = true;
+                calculator.operator = nextOperator;
+            }
+
+            function handleBackspace() {
+                calculator.displayValue = calculator.displayValue.slice(0, -1) || '0';
+            }
+
+            const performCalculation = {
+                '/': (firstOperand, secondOperand) => firstOperand / secondOperand,
+                '*': (firstOperand, secondOperand) => firstOperand * secondOperand,
+                '+': (firstOperand, secondOperand) => firstOperand + secondOperand,
+                '-': (firstOperand, secondOperand) => firstOperand - secondOperand,
+                '=': (firstOperand, secondOperand) => secondOperand
+            };
+
+            function resetCalculator() {
+                calculator.displayValue = '0';
+                calculator.firstOperand = null;
+                calculator.waitingForSecondOperand = false;
+                calculator.operator = null;
+                calculator.history = [];
+            }
+
+            function toggleHistory() {
+                const history = document.querySelector('.history');
+                const toggleButton = document.querySelector('.toggle-history');
+                if (history.style.display === 'none') {
+                    history.style.display = 'block';
+                    toggleButton.textContent = 'History';
+                } else {
+                    history.style.display = 'none';
+                    toggleButton.textContent = 'History';
+                }
+            }
+
+            const keys = document.querySelector('.calculator-keys');
+            keys.addEventListener('click', handleKeyPress);
+
+            const toggleButton = document.querySelector('.toggle-history');
+            toggleButton.addEventListener('click', toggleHistory);
+
+            updateDisplay();
+            updateHistory();
+        });
+    </script>
+</body>
+</html>
